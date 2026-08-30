@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KLC Time Clock</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5c7185;
+      --paper: #f7fbff;
+      --accent: #e76f51;
+      --accent-dark: #c9553b;
+      --line: #d7e5ef;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 15%, #d8f3f0 0, transparent 32%),
+        radial-gradient(circle at 85% 85%, #ffe1d6 0, transparent 30%),
+        var(--paper);
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    main {
+      width: min(100%, 680px);
+      padding: clamp(36px, 8vw, 76px);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 24px 60px rgba(23, 50, 77, 0.12);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 8vw, 5.5rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      color: var(--accent-dark);
+      font: Arial, sans-serif;
+      font-size: clamp(1.25rem, 4vw, 2.75rem);
+      line-height: 0.95;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    p {
+      max-width: 38ch;
+      margin: 24px auto 32px;
+      color: var(--muted);
+      font: 1.05rem/1.7 Arial, sans-serif;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      max-width: 360px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    label {
+      color: var(--ink);
+      font: 700 0.82rem/1.2 Arial, sans-serif;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      padding: 13px;
+      color: var(--ink);
+      background: #fff;
+      font: 1rem Arial, sans-serif;
+    }
+
+    button {
+      border: 0;
+      padding: 14px 22px;
+      color: #fff;
+      background: var(--accent);
+      font: 700 0.9rem/1 Arial, sans-serif;
+      cursor: pointer;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      color: #7d8790;
+      background: #d7dde1;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #17324d;
+      outline-offset: 4px;
+    }
+
+    #message {
+      min-height: 1.5em;
+      margin: 20px 0 0;
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .full-log-link {
+      display: inline-block;
+      margin-top: 28px;
+      color: var(--accent-dark);
+      font: 700 0.9rem Arial, sans-serif;
+    }
+
+    .clock-status {
+      margin: 3px 0;
+      min-height: 1.2em;
+      line-height: 1.2;
+    }
+
+    .activity {
+      margin-top: 36px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .activity h2 {
+      margin-bottom: 14px;
+      font-size: 1.2rem;
+      letter-spacing: 0;
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font: 0.95rem/1.4 Arial, sans-serif;
+    }
+
+    .activity-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .activity-list time {
+      color: var(--muted);
+    }
+
+  </style>
+</head>
+<body>
+  <main>
+    <h2 class="eyebrow">Kount Learning Center</h2>
+    <h1>TA Time Clock</h1>
+    <p>Select your name, then clock in or out. Must be on site - within 200m of 777 W Main St.</p>
+    <form id="nameForm">
+      <label for="nameSelect">TA name</label>
+      <select id="nameSelect" name="name" required>
+        <option value="">Loading names...</option>
+      </select>
+      <p id="clockStatus" class="clock-status"></p>
+      <button id="clockButton" type="submit" disabled>--Please Select a Name--</button>
+    </form>
+    <p id="message" aria-live="polite"></p>
+    <section class="activity" aria-labelledby="activityHeading">
+      <h2 id="activityHeading">Today's activity</h2>
+      <ul id="activityList" class="activity-list">
+        <li>Select a name to view today's activity.</li>
+      </ul>
+    </section>
+    <a class="full-log-link" href="/logs.html">View full logs</a>
+  </main>
+
+  <script>
+    const nameForm = document.querySelector('#nameForm');
+    const nameSelect = document.querySelector('#nameSelect');
+    const clockButton = document.querySelector('#clockButton');
+    const clockStatus = document.querySelector('#clockStatus');
+    const message = document.querySelector('#message');
+    const activityList = document.querySelector('#activityList');
+    let names = [];
+
+    function updateClockButton() {
+      const selectedName = names.find((name) => String(name.id) === nameSelect.value);
+      clockStatus.textContent = selectedName ? `You are currently ${selectedName.status}` : '';
+      clockButton.disabled = !selectedName;
+      clockButton.textContent = selectedName ? selectedName.status === 'clocked in' ? 'Clock out' : 'Clock in' : '--Please Select a Name--';
+      loadActivity(selectedName?.id);
+    }
+
+    function renderActivity(activity) {
+      activityList.replaceChildren();
+      if (activity.length === 0) {
+        const emptyItem = document.createElement('li');
+        emptyItem.textContent = 'No activity recorded today.';
+        activityList.append(emptyItem);
+        return;
+      }
+
+      activity.forEach((event) => {
+        const item = document.createElement('li');
+        const type = document.createElement('strong');
+        const time = document.createElement('time');
+        type.textContent = event.type === 'clock in' ? 'Clock in' : 'Clock out';
+        time.dateTime = event.timestamp;
+        time.textContent = new Date(`${event.timestamp.replace(' ', 'T')}Z`).toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+        item.append(type, time);
+        activityList.append(item);
+      });
+    }
+
+    async function loadActivity(nameId) {
+      if (!nameId) {
+        const emptyItem = document.createElement('li');
+        emptyItem.textContent = 'Select a name to view today\'s activity.';
+        activityList.replaceChildren(emptyItem);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/logs/today/${nameId}`);
+        if (!response.ok) throw new Error('Could not load activity');
+        renderActivity(await response.json());
+      } catch (error) {
+        const errorItem = document.createElement('li');
+        errorItem.textContent = 'Activity is unavailable.';
+        activityList.replaceChildren(errorItem);
+      }
+    }
+
+    async function loadNames() {
+      try {
+        const response = await fetch('/api/names');
+        if (!response.ok) throw new Error('Could not load names');
+
+        names = await response.json();
+        nameSelect.replaceChildren(new Option('Select a name', ''));
+        names.forEach((name) => nameSelect.add(new Option(name.name, name.id)));
+        updateClockButton();
+      } catch (error) {
+        nameSelect.replaceChildren(new Option('Start the server to load names', ''));
+        updateClockButton();
+        message.textContent = 'The database connection is unavailable.';
+      }
+    }
+
+    nameForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const selectedName = nameSelect.value;
+
+      if (!selectedName) return;
+
+      const selectedPerson = names.find((name) => String(name.id) === selectedName);
+      const type = selectedPerson.status === 'clocked in' ? 'clock out' : 'clock in';
+      clockButton.disabled = true;
+
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
+
+        const response = await fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nameId: selectedName,
+            type,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          })
+        });
+
+        if (response.ok) {
+          selectedPerson.status = type === 'clock in' ? 'clocked in' : 'clocked out';
+          updateClockButton();
+          message.textContent = `Successfully clocked ${type === 'clock in' ? 'in' : 'out'}.`;
+        } else {
+          const result = await response.json();
+          message.textContent = result.error || 'The clock event could not be saved.';
+          updateClockButton();
+        }
+      } catch (error) {
+        message.textContent = error.code === 1
+          ? 'Location permission is required to clock in or out.'
+          : 'Your location could not be determined.';
+        updateClockButton();
+      }
+    });
+
+    nameSelect.addEventListener('change', updateClockButton);
+
+    loadNames();
+  </script>
+</body>
+</html>

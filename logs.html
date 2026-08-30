@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KLC Logs</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5c7185;
+      --paper: #f7fbff;
+      --accent: #e76f51;
+      --accent-dark: #c9553b;
+      --line: #d7e5ef;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 15%, #d8f3f0 0, transparent 32%),
+        radial-gradient(circle at 85% 85%, #ffe1d6 0, transparent 30%),
+        var(--paper);
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    main {
+      width: min(100%, 860px);
+      padding: clamp(28px, 6vw, 60px);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 24px 60px rgba(23, 50, 77, 0.12);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--accent-dark);
+      font: 700 0.76rem/1.2 Arial, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 8vw, 5.5rem);
+      line-height: 0.95;
+    }
+
+    .intro {
+      margin: 20px 0 0;
+      color: var(--muted);
+      font: 1.05rem/1.7 Arial, sans-serif;
+    }
+
+    .filter {
+      display: grid;
+      gap: 6px;
+      max-width: 360px;
+      margin-bottom: 24px;
+      margin-top: 18px;
+    }
+
+    .current-staff {
+      margin-top: 28px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      background: rgba(216, 243, 240, 0.5);
+      font: 0.95rem/1.4 Arial, sans-serif;
+    }
+
+    .current-staff h2 {
+      margin: 0 0 8px;
+      font: 700 0.82rem/1.2 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .current-staff ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    label {
+      font: 700 0.82rem/1.2 Arial, sans-serif;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      padding: 13px;
+      color: var(--ink);
+      background: #fff;
+      font: 1rem Arial, sans-serif;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font: 0.9rem/1.4 Arial, sans-serif;
+    }
+
+    th,
+    td {
+      padding: 11px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      font: 700 0.9rem Arial, sans-serif;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pagination button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 12px;
+      cursor: pointer;
+      font: 700 0.8rem Arial, sans-serif;
+    }
+
+    .pagination button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--accent-dark);
+      font: 700 0.9rem Arial, sans-serif;
+    }
+
+    @media (max-width: 560px) {
+      th:nth-child(1),
+      td:nth-child(1) {
+        display: none;
+      }
+
+      th,
+      td {
+        padding: 10px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Learning Center</p>
+    <h1>Full logs</h1>
+    <p class="intro">Review clock-in and clock-out activity, sorted with the newest events first.</p>
+
+    <a class="back-link" href="/">Back to time clock</a>
+
+    <section id="currentStaff" class="current-staff" aria-labelledby="currentStaffHeading" hidden>
+      <h2 id="currentStaffHeading">Currently clocked in</h2>
+      <ul id="currentStaffList"></ul>
+    </section>
+
+    <div class="filter">
+      <label for="adminNameSelect">Show logs for</label>
+      <select id="adminNameSelect">
+        <option value="all">Everyone</option>
+      </select>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Event</th>
+          <th scope="col">Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="adminLogList">
+        <tr><td colspan="3">Loading logs...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="pagination" aria-label="Log pagination">
+      <div class="pagination-controls">
+        <button id="prevPage" type="button">Previous</button>
+        <span id="pageLabel">Page 1</span>
+        <button id="nextPage" type="button">Next</button>
+      </div>
+      <span id="totalLabel">0 entries</span>
+    </div>
+
+    <a class="back-link" href="/">Back to time clock</a>
+  </main>
+
+  <script>
+    const adminNameSelect = document.querySelector('#adminNameSelect');
+    const adminLogList = document.querySelector('#adminLogList');
+    const currentStaff = document.querySelector('#currentStaff');
+    const currentStaffList = document.querySelector('#currentStaffList');
+    const prevPageButton = document.querySelector('#prevPage');
+    const nextPageButton = document.querySelector('#nextPage');
+    const pageLabel = document.querySelector('#pageLabel');
+    const totalLabel = document.querySelector('#totalLabel');
+
+    let currentPage = 1;
+    let currentFilter = 'all';
+    let totalPages = 1;
+
+    function renderLogs(logs) {
+      adminLogList.replaceChildren();
+      if (logs.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = '<td colspan="3">No logs found.</td>';
+        adminLogList.append(emptyRow);
+        return;
+      }
+
+      logs.forEach((event) => {
+        const row = document.createElement('tr');
+        const name = document.createElement('td');
+        const type = document.createElement('td');
+        const timestamp = document.createElement('td');
+        name.textContent = event.name;
+        type.textContent = event.type === 'clock in' ? 'Clock in' : 'Clock out';
+        timestamp.textContent = new Date(`${event.timestamp.replace(' ', 'T')}Z`).toLocaleString();
+        row.append(name, type, timestamp);
+        adminLogList.append(row);
+      });
+    }
+
+    function updatePaginationMeta(page, totalPagesValue, total) {
+      currentPage = page;
+      totalPages = totalPagesValue;
+      pageLabel.textContent = `Page ${page} of ${totalPagesValue}`;
+      totalLabel.textContent = `${total} entries`;
+      prevPageButton.disabled = page <= 1;
+      nextPageButton.disabled = page >= totalPagesValue;
+    }
+
+    async function loadLogs(nameId = 'all', page = 1) {
+      currentFilter = nameId;
+      try {
+        const response = await fetch(`/api/logs?nameId=${encodeURIComponent(nameId)}&page=${page}`);
+        if (!response.ok) throw new Error('Could not load logs');
+        const result = await response.json();
+        renderLogs(result.rows);
+        updatePaginationMeta(result.page, result.totalPages, result.total);
+      } catch (error) {
+        const errorRow = document.createElement('tr');
+        errorRow.innerHTML = '<td colspan="3">Logs are unavailable.</td>';
+        adminLogList.replaceChildren(errorRow);
+        updatePaginationMeta(1, 1, 0);
+      }
+    }
+
+    async function loadNames() {
+      try {
+        const response = await fetch('/api/names');
+        if (!response.ok) throw new Error('Could not load names');
+        const names = await response.json();
+        const clockedInNames = names.filter((name) => name.status === 'clocked in');
+        currentStaffList.replaceChildren();
+        clockedInNames.forEach((name) => {
+          const item = document.createElement('li');
+          item.textContent = name.name;
+          currentStaffList.append(item);
+        });
+        currentStaff.hidden = clockedInNames.length === 0;
+        names.forEach((name) => adminNameSelect.add(new Option(name.name, name.id)));
+      } catch (error) {
+        adminNameSelect.replaceChildren(new Option('Names are unavailable', 'all'));
+        currentStaff.hidden = true;
+      }
+    }
+
+    adminNameSelect.addEventListener('change', (event) => {
+      currentPage = 1;
+      loadLogs(event.target.value, 1);
+    });
+
+    prevPageButton.addEventListener('click', () => {
+      if (currentPage > 1) {
+        loadLogs(currentFilter, currentPage - 1);
+      }
+    });
+
+    nextPageButton.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        loadLogs(currentFilter, currentPage + 1);
+      }
+    });
+
+    loadNames();
+    loadLogs();
+  </script>
+</body>
+</html>
