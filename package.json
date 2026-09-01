@@ -1,8 +1,8 @@
 {
-  "name": "hello-world-sql",
+  "name": "KLC Login System",
   "version": "1.0.0",
   "private": true,
-  "description": "A small website with a SQLite-backed name selector",
+  "description": "A website for the KLC with a SQLite database",
   "scripts": {
     "start": "node server.js"
   },
